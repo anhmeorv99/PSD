@@ -7,6 +7,7 @@ from psd_tools import PSDImage
 psd = PSDImage.open('/home/anhmeo/Desktop/Once upon a time there was a girl who loves dogs. The end..psd')
 
 list_layer_parent = []
+found_2_dog = 0
 
 
 def find_parent(layer):
@@ -29,8 +30,11 @@ def find_parent(layer):
 def set_visible(group, mode):
     name = ""
     for layer in group:
-        layer.visible = mode
-        name += '_' + layer.name
+        if layer.name.lower() != 'background':
+            layer.visible = mode
+            name += '_' + layer.name
+        else:
+            layer.visible = True
     return name
 
 
@@ -63,7 +67,7 @@ def export_img(list_groups, grant):
         if not check_duplicate_parent(combination):
             name = set_visible(combination, True)
             if not os.path.isfile(f'./lab/{name}.png'):
-                image = grant.composite()
+                image = grant.composite(ignore_preview=True, force=True)
                 image.save(f'./lab/{name}.png')
             set_visible(combination, False)
             yield {
@@ -72,97 +76,113 @@ def export_img(list_groups, grant):
             }
 
 
-def get_object(root, layers):
-    list_layers = []
-
+def get_object(root, layers, background):
     for layer in layers:
         if layer.is_group():
             layer.visible = True
-            if layer.name.lower() != 'background':
-                obj = {
-                    f"{layer.name}": get_object(root, layer),
-                }
-                list_layers.append(obj)
+            if layer.name.lower() == background:
+                # layer.visible = True
+                continue
             else:
-                layer.visible = True
-            #     if not os.path.isfile(f'./lab/{layer.name}.png'):
-            #         list_layers.append({
-            #             "name": f"{layer.name}",
-            #             "url": f"./lab/{layer.name}.png"
-            #         })
-            #         image = layers.composite()
-            #         image.save(f'./lab/{layer.name}.png')
-            #     continue
+                get_object(root, layer, background)
         else:
-            if layer.name.lower() == 'background':
-                layer.visible = True
-
+            list_parent = []
             layer_parent = layer.parent
+            if layer.parent.name == root.name:
+                continue
+
             list_parent = find_parent(layer_parent)
+
             if list_parent in list_layer_parent:
                 if len(list_parent) > 0:
                     continue
                 else:
                     layer.visible = True
                     if not os.path.isfile(f'./lab/{layer.name}.png'):
-                        list_layers.append({
-                            "name": f"{layer.name}",
-                            "url": f"./lab/{layer.name}.png"
-                        })
-                        image = layers.composite()
+                        image = root.composite(ignore_preview=True, force=True)
                         image.save(f'./lab/{layer.name}.png')
                     continue
             list_layer_parent.append(list_parent)
             list_combination = []
-            obj = {
-                "name": layer.parent.name,
-                "combinations": [],
-                "child": []
-
-            }
-            if len(list_parent) > 1:
-                set_visible(list_parent, True)
-                for item in export_img(list_parent, list_parent[0].parent):
-                    list_combination.append(item)
-                obj["combinations"] = list_combination
+            if len(list_parent) > 1 and list_parent[0].parent.name != root.name:
+                break
+                # for item in export_img(list_parent, root):
+                #     list_combination.append(item)
             elif len(list_parent) == 1:
                 grant = list_parent[0].parent
-                for index, item in enumerate(grant.parent):
-                    if item.name.lower() == 'background' or item.name == grant.name:
-                        grant.parent[index].visible = True
-                    else:
-                        grant.parent[index].visible = False
+                if not grant.parent or grant.name == root.name:
+                    for index, item in enumerate(grant.parent):
+                        if item.name.lower() == background or item.name == grant.name:
+                            grant.parent[index].visible = True
+                        else:
+                            grant.parent[index].visible = False
 
                 set_visible(layer_parent, False)
                 for item in layer_parent:
                     item.visible = True
                     name = item.name
-                    obj["child"].append({
-                        "name": f"{item.name}",
-                        "url": f"./lab/{item.name}.png"
-                    })
                     if not os.path.isfile(f'./lab/{name}.png'):
-                        tmp = item.parent
-                        try:
-                            while True:
-                                if tmp.parent.name != root.name:
-                                    tmp = tmp.parent
-                                    tmp.visible = True
-                                else:
-                                    break
-                        except Exception:
-                            pass
-
-                        image = tmp.composite()
+                        image = root.composite(ignore_preview=True, force=True)
                         image.save(f'./lab/{name}.png')
                     item.visible = False
-
-            list_layers.append(obj)
-    return list_layers
+            set_visible(root, False)
 
 
-content = {
-    "layers": get_object(psd, psd)
-}
+def get_object_2_dog(root, layers, background):
+    for layer in layers:
+        if layer.is_group():
+            layer.visible = True
+            if layer.name.lower() == background:
+                # layer.visible = True
+                continue
+            else:
+                get_object_2_dog(root, layer, background)
+        else:
+            list_parent = []
+            layer_parent = layer.parent
+            if layer.parent.name == root.name:
+                continue
 
-print(json.dumps(content))
+            list_parent = find_parent(layer_parent)
+
+            if list_parent in list_layer_parent:
+                if len(list_parent) > 0:
+                    continue
+                else:
+                    layer.visible = True
+                    if not os.path.isfile(f'./lab/{layer.name}.png'):
+                        image = root.composite(ignore_preview=True, force=True)
+                        image.save(f'./lab/{layer.name}.png')
+                    continue
+            list_layer_parent.append(list_parent)
+            list_combination = []
+            if len(list_parent) > 1 and list_parent[0].parent.name != root.name:
+                for item in export_img(list_parent, root):
+                    list_combination.append(item)
+            elif len(list_parent) == 1:
+                grant = list_parent[0].parent
+                if not grant.parent or grant.name == root.name:
+                    for index, item in enumerate(grant.parent):
+                        if item.name.lower() == background or item.name == grant.name:
+                            grant.parent[index].visible = True
+                        else:
+                            grant.parent[index].visible = False
+
+                set_visible(layer_parent, False)
+                for item in layer_parent:
+                    item.visible = True
+                    name = item.name
+                    if not os.path.isfile(f'./lab/{name}.png'):
+                        image = root.composite(ignore_preview=True, force=True)
+                        image.save(f'./lab/{name}.png')
+                    item.visible = False
+            set_visible(root, False)
+
+
+set_visible(psd, False)
+
+get_object(psd, psd, 'background')
+
+psd = PSDImage.open('/home/anhmeo/Desktop/Once upon a time there was a girl who loves dogs. The end..psd')
+set_visible(psd, False)
+get_object_2_dog(psd, psd, 'background')
