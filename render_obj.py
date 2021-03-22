@@ -16,8 +16,14 @@ def get_object(layers):
                     f"{layer.name}": get_object(layer),
                 }
                 list_layers.append(obj)
+            else:
+                list_layers.append({
+                    "name": layer.name,
+                    "url": f"./lab/{layer.name}.png"
+                })
         else:
-            layer.visible = True
+            if layer.name.lower() == 'background' and layer.parent.parent is None:
+                continue
             list_layers.append({
                 "name": f"{layer.name}",
                 "url": f"./lab/{layer.name}.png"
