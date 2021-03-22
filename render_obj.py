@@ -32,7 +32,9 @@ def get_object(layers):
 
 
 content = {
-    "layers": get_object(psd)
+    "Root": get_object(psd)
 }
 
-print(json.dumps(content))
+with open('./output.json', 'w') as f:
+    f.write(json.dumps(content))
+    f.close()
