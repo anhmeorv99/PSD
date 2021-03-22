@@ -4,7 +4,10 @@ import itertools
 import cv2
 from psd_tools import PSDImage
 
+psd = PSDImage.open('/home/anhmeo/Desktop/Once upon a time there was a girl who loves dogs. The end..psd')
+
 list_layer_parent = []
+found_2_dog = 0
 
 
 def find_parent(layer):
@@ -24,14 +27,15 @@ def find_parent(layer):
     return []
 
 
-def set_visible(group, mode):
+def set_visible(group, mode, root):
     name = ""
     for layer in group:
         if layer.name.lower() != 'background':
             layer.visible = mode
             name += '_' + layer.name
         else:
-            layer.visible = True
+            if layer.parent.name == root.name:
+                layer.visible = True
     return name
 
 
@@ -62,11 +66,11 @@ def export_img(list_groups, grant):
 
     for index, combination in enumerate(list_img):
         if not check_duplicate_parent(combination):
-            name = set_visible(combination, True)
+            name = set_visible(combination, True, grant)
             if not os.path.isfile(f'./lab/{name}.png'):
-                image = grant.composite(ignore_preview=True, force=True)
+                image = grant.composite(ignore_preview=True)
                 image.save(f'./lab/{name}.png')
-            set_visible(combination, False)
+            set_visible(combination, False, grant)
             yield {
                 "name": name,
                 "url": f'./lab/{name}.png'
@@ -90,6 +94,7 @@ def get_object(root, layers, background):
                     f"{layer.name}": get_object(root, layer, background)
                 }
                 result.append(obj)
+
         else:
             list_parent = []
             layer_parent = layer.parent
@@ -97,9 +102,14 @@ def get_object(root, layers, background):
                 continue
 
             list_parent = find_parent(layer_parent)
+            if len(list_parent) > 0:
+                for parent in list_parent:
+                    if parent.name != layer.parent.name:
+                        parent.visible = False
 
             if list_parent in list_layer_parent:
                 if len(list_parent) > 0:
+
                     continue
                 else:
                     result.append({
@@ -109,59 +119,7 @@ def get_object(root, layers, background):
 
                     layer.visible = True
                     if not os.path.isfile(f'./lab/{layer.name}.png'):
-                        image = root.composite(ignore_preview=True, force=True)
-                        image.save(f'./lab/{layer.name}.png')
-                    continue
-            list_layer_parent.append(list_parent)
-            list_combination = []
-            if len(list_parent) > 1 and list_parent[0].parent.name != root.name:
-                break
-                # for item in export_img(list_parent, root):
-                #     list_combination.append(item)
-            elif len(list_parent) == 1:
-                grant = list_parent[0].parent
-                if not grant.parent or grant.name == root.name:
-                    for index, item in enumerate(grant.parent):
-                        if item.name.lower() == background or item.name == grant.name:
-                            grant.parent[index].visible = True
-                        else:
-                            grant.parent[index].visible = False
-
-                set_visible(layer_parent, False)
-                for item in layer_parent:
-                    item.visible = True
-                    name = item.name
-                    if not os.path.isfile(f'./lab/{name}.png'):
-                        image = root.composite(ignore_preview=True, force=True)
-                        image.save(f'./lab/{name}.png')
-                    item.visible = False
-            set_visible(root, False)
-
-
-def get_object_2_dog(root, layers, background):
-    for layer in layers:
-        if layer.is_group():
-            layer.visible = True
-            if layer.name.lower() == background:
-                # layer.visible = True
-                continue
-            else:
-                get_object_2_dog(root, layer, background)
-        else:
-            list_parent = []
-            layer_parent = layer.parent
-            if layer.parent.name == root.name:
-                continue
-
-            list_parent = find_parent(layer_parent)
-
-            if list_parent in list_layer_parent:
-                if len(list_parent) > 0:
-                    continue
-                else:
-                    layer.visible = True
-                    if not os.path.isfile(f'./lab/{layer.name}.png'):
-                        image = root.composite(ignore_preview=True, force=True)
+                        image = root.composite(ignore_preview=True)
                         image.save(f'./lab/{layer.name}.png')
                     continue
             list_layer_parent.append(list_parent)
@@ -169,6 +127,12 @@ def get_object_2_dog(root, layers, background):
             if len(list_parent) > 1 and list_parent[0].parent.name != root.name:
                 for item in export_img(list_parent, root):
                     list_combination.append(item)
+                result.append({
+                    "name": f"{layer.name}",
+                    "url": f"./lab/{layer.name}.png",
+                    "combination": list_combination
+                })
+
             elif len(list_parent) == 1:
                 grant = list_parent[0].parent
                 if not grant.parent or grant.name == root.name:
@@ -178,25 +142,21 @@ def get_object_2_dog(root, layers, background):
                         else:
                             grant.parent[index].visible = False
 
-                set_visible(layer_parent, False)
+                set_visible(layer_parent, False, root)
                 for item in layer_parent:
                     item.visible = True
                     name = item.name
+                    result.append({
+                        "name": f"{layer.name}",
+                        "url": f"./lab/{layer.name}.png"
+                    })
                     if not os.path.isfile(f'./lab/{name}.png'):
-                        image = root.composite(ignore_preview=True, force=True)
+                        image = root.composite(ignore_preview=True)
                         image.save(f'./lab/{name}.png')
                     item.visible = False
-            set_visible(root, False)
+                set_visible(layer_parent.parent, False, root)
 
 
-def start(path):
-    psd = PSDImage.open(path)
-    set_visible(psd, False)
-    get_object(psd, psd, 'background')
-    psd = PSDImage.open(path)
-    set_visible(psd, False)
-    get_object_2_dog(psd, psd, 'background')
+set_visible(psd, False, psd)
 
-
-if __name__ == '__main__':
-    start('/home/anhmeo/Desktop/Once upon a time there was a girl who loves dogs. The end..psd')
+get_object(psd, psd, 'background')
