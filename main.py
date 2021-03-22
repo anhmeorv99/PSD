@@ -4,10 +4,7 @@ import itertools
 import cv2
 from psd_tools import PSDImage
 
-psd = PSDImage.open('/home/anhmeo/Desktop/Once upon a time there was a girl who loves dogs. The end..psd')
-
 list_layer_parent = []
-found_2_dog = 0
 
 
 def find_parent(layer):
@@ -77,14 +74,22 @@ def export_img(list_groups, grant):
 
 
 def get_object(root, layers, background):
+    result = []
     for layer in layers:
         if layer.is_group():
             layer.visible = True
             if layer.name.lower() == background:
-                # layer.visible = True
+                obj = {
+                    "name": layer.name,
+                    "url": root.composite().save(f"{layer.name}.png")
+                }
+                result.append(obj)
                 continue
             else:
-                get_object(root, layer, background)
+                obj = {
+                    f"{layer.name}": get_object(root, layer, background)
+                }
+                result.append(obj)
         else:
             list_parent = []
             layer_parent = layer.parent
@@ -97,6 +102,11 @@ def get_object(root, layers, background):
                 if len(list_parent) > 0:
                     continue
                 else:
+                    result.append({
+                        "name": f"{layer.name}",
+                        "url": f"./lab/{layer.name}.png"
+                    })
+
                     layer.visible = True
                     if not os.path.isfile(f'./lab/{layer.name}.png'):
                         image = root.composite(ignore_preview=True, force=True)
@@ -179,10 +189,14 @@ def get_object_2_dog(root, layers, background):
             set_visible(root, False)
 
 
-set_visible(psd, False)
+def start(path):
+    psd = PSDImage.open(path)
+    set_visible(psd, False)
+    get_object(psd, psd, 'background')
+    psd = PSDImage.open(path)
+    set_visible(psd, False)
+    get_object_2_dog(psd, psd, 'background')
 
-get_object(psd, psd, 'background')
 
-psd = PSDImage.open('/home/anhmeo/Desktop/Once upon a time there was a girl who loves dogs. The end..psd')
-set_visible(psd, False)
-get_object_2_dog(psd, psd, 'background')
+if __name__ == '__main__':
+    start('/home/anhmeo/Desktop/Once upon a time there was a girl who loves dogs. The end..psd')
