@@ -85,9 +85,14 @@ def render_img(layers, path):
     for layer in layers:
         if layer.kind == 'group':
             if layer.name.lower() == 'background':
+                if not os.path.isfile(f'./lab1/{layer.name}.png'):
+                    layer_img = PSDImage.open(path)
+                    image = layer_img.composite(ignore_preview=True)
+                    image.save(f'./lab1/{layer.name}.png')
+                    print(f'save successfully file: {layer.name}')
                 list_layers.append({
                     "name": layer.name,
-                    "url": f"./lab1/{layer.name}_.png"
+                    "url": f"./lab1/{layer.name}.png"
                 })
                 continue
             layer.visible = True
@@ -104,8 +109,8 @@ def render_img(layers, path):
                 branch.append(tmp.name)
                 tmp = tmp.parent
 
-            if layer.name.lower() == 'background' and layer.parent is None:
-                continue
+            # if layer.name.lower() == 'background' and layer.parent is None:
+            #     continue
 
             current_path = gen_path(current_path, branch)
             list_layers.append({
