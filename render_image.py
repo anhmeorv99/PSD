@@ -1,12 +1,25 @@
+import concurrent
 import json
 import os
 import itertools
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import cv2
 from psd_tools import PSDImage
 
-list_layer_parent = []
+list_image_object = []
+
+
+def send_with_thread_executor(max_workers):
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = []
+        for image in list_image_object:
+            futures.append(
+                executor.submit(
+                    write_file_png, image[0], image[1]
+                )
+            )
 
 
 def set_visible(group, mode):
@@ -41,14 +54,15 @@ def visible_branch(root, branch):
                     visible_branch(layer, branch)
 
 
-def write_file_png(name, path, branch):
+def write_file_png(layer_img, name):
     if not os.path.isfile(f'./lab1/{name}.png'):
-        layer_img = PSDImage.open(path)
-        set_visible_all(layer_img, False)
-        set_visible(layer_img, False)
-        visible_branch(layer_img, branch)
+        # layer_img = PSDImage.open(path)
+        # set_visible_all(layer_img, False)
+        # set_visible(layer_img, False)
+        # visible_branch(layer_img, branch)
         image = layer_img.composite(ignore_preview=True)
         image.save(f'./lab1/{name}.png')
+        print(f'save successfully file: {name}')
 
 
 def render_img(layers, path):
@@ -83,7 +97,14 @@ def render_img(layers, path):
                 "url": f"./lab1/{name}.png"
             })
 
-            write_file_png(name, path, branch)
+            layer_img = PSDImage.open(path)
+            set_visible_all(layer_img, False)
+            set_visible(layer_img, False)
+            visible_branch(layer_img, branch)
+            list_image_object.append([layer_img, name])
+            if len(list_image_object) > 10:
+                send_with_thread_executor(5)
+                list_image_object.clear()
 
     return list_layers
 
@@ -103,20 +124,4 @@ def start():
 
 
 if __name__ == '__main__':
-
-    try:
-        start()
-        t1 = threading.Thread(target=write_file_png)
-        t2 = threading.Thread(target=write_file_png)
-        t3 = threading.Thread(target=write_file_png)
-        t4 = threading.Thread(target=write_file_png)
-        t1.start()
-        t2.start()
-        t3.start()
-        t4.start()
-        t1.join()
-        t2.join()
-        t3.join()
-        t4.join()
-    except Exception as e:
-        print(e)
+    start()
