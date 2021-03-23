@@ -17,7 +17,7 @@ def send_with_thread_executor(max_workers):
         for image in list_image_object:
             futures.append(
                 executor.submit(
-                    write_file_png, image[0], image[1]
+                    write_file_png, image[0], image[1], image[2]
                 )
             )
 
@@ -54,12 +54,12 @@ def visible_branch(root, branch):
                     visible_branch(layer, branch)
 
 
-def write_file_png(layer_img, name):
+def write_file_png(name, path, branch):
     if not os.path.isfile(f'./lab1/{name}.png'):
-        # layer_img = PSDImage.open(path)
-        # set_visible_all(layer_img, False)
-        # set_visible(layer_img, False)
-        # visible_branch(layer_img, branch)
+        layer_img = PSDImage.open(path)
+        set_visible_all(layer_img, False)
+        set_visible(layer_img, False)
+        visible_branch(layer_img, branch)
         image = layer_img.composite(ignore_preview=True)
         image.save(f'./lab1/{name}.png')
         print(f'save successfully file: {name}')
@@ -97,11 +97,7 @@ def render_img(layers, path):
                 "url": f"./lab1/{name}.png"
             })
 
-            layer_img = PSDImage.open(path)
-            set_visible_all(layer_img, False)
-            set_visible(layer_img, False)
-            visible_branch(layer_img, branch)
-            list_image_object.append([layer_img, name])
+            list_image_object.append([name, path, branch])
             if len(list_image_object) > 10:
                 send_with_thread_executor(5)
                 list_image_object.clear()
