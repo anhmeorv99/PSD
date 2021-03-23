@@ -1,6 +1,8 @@
 import json
 import os
 import itertools
+import threading
+
 import cv2
 from psd_tools import PSDImage
 
@@ -39,6 +41,16 @@ def visible_branch(root, branch):
                     visible_branch(layer, branch)
 
 
+def write_file_png(name, path, branch):
+    if not os.path.isfile(f'./lab1/{name}.png'):
+        layer_img = PSDImage.open(path)
+        set_visible_all(layer_img, False)
+        set_visible(layer_img, False)
+        visible_branch(layer_img, branch)
+        image = layer_img.composite(ignore_preview=True)
+        image.save(f'./lab1/{name}.png')
+
+
 def render_img(layers, path):
     list_layers = []
     for layer in layers:
@@ -46,7 +58,7 @@ def render_img(layers, path):
             if layer.name.lower() == 'background':
                 list_layers.append({
                     "name": layer.name,
-                    "url": f"./lab/{layer.name}_.png"
+                    "url": f"./lab1/{layer.name}_.png"
                 })
                 continue
             layer.visible = True
@@ -68,29 +80,43 @@ def render_img(layers, path):
                 continue
             list_layers.append({
                 "name": f"{layer.name}",
-                "url": f"./lab/{name}.png"
+                "url": f"./lab1/{name}.png"
             })
 
-            if not os.path.isfile(f'./lab/{name}.png'):
-                layer_img = PSDImage.open(path)
-                set_visible_all(layer_img, False)
-                set_visible(layer_img, False)
-                visible_branch(layer_img, branch)
-                image = layer_img.composite(ignore_preview=True)
-                image.save(f'./lab/{name}.png')
+            write_file_png(name, path, branch)
 
     return list_layers
 
 
-psd = PSDImage.open('/home/anhmeo/Desktop/Once upon a time there was a girl who loves dogs. The end..psd')
-set_visible_all(psd, False)
-set_visible(psd, False)
+def start():
+    psd = PSDImage.open('/home/anhmeo/Desktop/Once upon a time there was a girl who loves dogs. The end..psd')
+    set_visible_all(psd, False)
+    set_visible(psd, False)
+
+    content = {
+        "Root": render_img(psd, '/home/anhmeo/Desktop/Once upon a time there was a girl who loves dogs. The end..psd')
+    }
+
+    with open('./output.json', 'w') as f:
+        f.write(json.dumps(content))
+        f.close()
 
 
-content = {
-    "Root": render_img(psd, '/home/anhmeo/Desktop/Once upon a time there was a girl who loves dogs. The end..psd')
-}
+if __name__ == '__main__':
 
-with open('./output.json', 'w') as f:
-    f.write(json.dumps(content))
-    f.close()
+    try:
+        start()
+        t1 = threading.Thread(target=write_file_png)
+        t2 = threading.Thread(target=write_file_png)
+        t3 = threading.Thread(target=write_file_png)
+        t4 = threading.Thread(target=write_file_png)
+        t1.start()
+        t2.start()
+        t3.start()
+        t4.start()
+        t1.join()
+        t2.join()
+        t3.join()
+        t4.join()
+    except Exception as e:
+        print(e)
