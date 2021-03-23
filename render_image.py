@@ -17,9 +17,24 @@ def send_with_thread_executor(max_workers):
         for image in list_image_object:
             futures.append(
                 executor.submit(
-                    write_file_png, image[0], image[1], image[2]
+                    write_file_png, image[0], image[1], image[2], image[3]
                 )
             )
+
+
+def gen_path(current_path, branch):
+    if len(branch) == 1:
+        return current_path
+    if len(branch) > 1:
+
+        branch.reverse()
+        for index in range(0, len(branch) - 1, 1):
+            if os.path.exists(f"{current_path}/{branch[index]}"):
+                current_path += f'/{branch[index]}'
+                continue
+            os.mkdir(os.path.join(current_path, branch[index]))
+            current_path += f'/{branch[index]}'
+        return current_path
 
 
 def set_visible(group, mode):
@@ -54,14 +69,14 @@ def visible_branch(root, branch):
                     visible_branch(layer, branch)
 
 
-def write_file_png(name, path, branch):
-    if not os.path.isfile(f'./lab1/{name}.png'):
+def write_file_png(name, path, branch, current_path):
+    if not os.path.isfile(f'{current_path}/{name}.png'):
         layer_img = PSDImage.open(path)
         set_visible_all(layer_img, False)
         set_visible(layer_img, False)
         visible_branch(layer_img, branch)
         image = layer_img.composite(ignore_preview=True)
-        image.save(f'./lab1/{name}.png')
+        image.save(f'{current_path}/{name}.png')
         print(f'save successfully file: {name}')
 
 
@@ -83,21 +98,22 @@ def render_img(layers, path):
         else:
 
             tmp = layer
-            name = ''
             branch = []
+            current_path = './lab1'
             while tmp.parent is not None:
-                name += tmp.name + '+'
                 branch.append(tmp.name)
                 tmp = tmp.parent
 
             if layer.name.lower() == 'background' and layer.parent is None:
                 continue
+
+            current_path = gen_path(current_path, branch)
             list_layers.append({
                 "name": f"{layer.name}",
-                "url": f"./lab1/{name}.png"
+                "url": f"{current_path}/{layer.name}.png"
             })
 
-            list_image_object.append([name, path, branch])
+            list_image_object.append([layer.name, path, branch, current_path])
             if len(list_image_object) > 10:
                 send_with_thread_executor(5)
                 list_image_object.clear()
