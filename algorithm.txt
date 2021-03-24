@@ -1,0 +1,21 @@
+Ý tưởng thuật toán render ảnh:
+    - set invisible tất cả các layer, group trong file psd.
+    - set visible background
+    - đệ quy để tìm ra các ảnh
+        - nếu tìm ra ảnh thì truy vết ngược lại để tìm ra đường đi từ root đến ảnh, sau đó visible trên đường đi
+            - dùng hàm write_file_png
+        - ngược lại visible các group trên đường tìm kiếm ảnh đó.
+    - in ảnh kèm theo object dạng json lưu tên và link của ảnh vào thư mục lab
+
+* Lưu ý, lib psd tools không hỗ trợ write file liên tục mà chỉ thay đổi visible hoặc invisible ở 1 số group. => nó sẽ
+ra background trắng. Vì vậy, mỗi lần write ảnh cần đọc lại file và set invisible như bước đầu tiên
+
+- Kết hợp đa luồng để tăng tốc độ write ảnh. khi có 10 cái ảnh thì sẽ bắn job vào để xử lý đa luồng.
+- Tổ hợp ảnh :
+    - Tìm ra các thư mục cùng cấp với thư mục cha của ảnh kèm background.
+    - lưu tất cả các layer name vào 1 mảng.
+    - lọc các layer dư thừa trong mảng
+    - tổ hợp và visible các ảnh tổ hợp
+    - in ảnh.
+
+
