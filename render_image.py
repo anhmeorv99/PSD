@@ -62,8 +62,11 @@ def visible_branch(root, branch):
         return
     for layer in root:
         if layer.name in branch or layer.name.lower() == 'background':
+            if layer.name.lower() == 'background' and layer.kind == 'group':
+                continue
             layer.visible = True
             if layer.name in branch:
+
                 branch.remove(layer.name)
                 if layer.kind == 'group':
                     visible_branch(layer, branch)
@@ -87,7 +90,7 @@ def render_img(layers, path):
             if layer.name.lower() == 'background':
                 if not os.path.isfile(f'./lab1/{layer.name}.png'):
                     layer_img = PSDImage.open(path)
-                    image = layer_img.composite(ignore_preview=True)
+                    image = layer_img.composite()
                     image.save(f'./lab1/{layer.name}.png')
                     print(f'save successfully file: {layer.name}')
                 list_layers.append({
@@ -108,11 +111,12 @@ def render_img(layers, path):
             while tmp.parent is not None:
                 branch.append(tmp.name)
                 tmp = tmp.parent
-
-            # if layer.name.lower() == 'background' and layer.parent is None:
-            #     continue
-
             current_path = gen_path(current_path, branch)
+
+            if layer.name.lower() == 'background' and layer.parent.parent:
+                write_file_png(layer.name, path, branch, current_path)
+                continue
+
             list_layers.append({
                 "name": f"{layer.name}",
                 "url": f"{current_path}/{layer.name}.png"
