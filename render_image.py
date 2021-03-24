@@ -102,7 +102,7 @@ def render_img(layers, path):
                     "url": f"./lab1/{layer.name}.png"
                 })
                 continue
-            if 'Text -' in layer.name.lower():
+            if 'Text -' in layer.name:
                 with open(f'./output_json/property_frame_and_text_{layer.name}.json', 'w') as f:
                     f.write(find_location_frame.find_location_and_text(layer))
                     f.close()
