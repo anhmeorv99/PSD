@@ -14,14 +14,14 @@ def find_location_and_text(root):
         if layer.kind == 'shape':
             list_frame.append(
                 {
-                    "name": layer.name,
-                    "position": {
+                    'name': layer.name,
+                    'position': {
                         "X": layer.offset[0],
                         "Y": layer.offset[1]
                     },
-                    "size": {
-                        "width": layer.size[0],
-                        "height": layer.size[1]
+                    'size': {
+                        'width': layer.size[0],
+                        'height': layer.size[1]
                     }
 
                 }
@@ -38,10 +38,10 @@ def find_location_and_text(root):
                 font_size = font_size[0]
                 list_text.append(
                     {
-                        "name": layer.name,
-                        "data": {
-                            "length_text": len_text,
-                            "font_size": float(font_size)
+                        'name': layer.name,
+                        'data': {
+                            'length_text': len_text,
+                            'font_size': float(font_size)
                         }
                     }
                 )
@@ -54,6 +54,6 @@ def find_location_and_text(root):
             "text": list_text
         }
     ]
-    return json.dumps(obj)
+    return obj
 
 
