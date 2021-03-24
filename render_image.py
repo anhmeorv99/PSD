@@ -1,11 +1,8 @@
 import concurrent
 import json
 import os
-import itertools
-import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
-import cv2
+import find_location_frame
 from psd_tools import PSDImage
 
 list_image_object = []
@@ -46,6 +43,12 @@ def set_visible(group, mode):
                 layer.visible = False
             else:
                 layer.visible = True
+
+
+def visible_background(root, mode):
+    for layer in root:
+        if layer.name.lower() == 'background':
+            layer.visible = mode
 
 
 def set_visible_all(root, mode):
@@ -90,13 +93,19 @@ def render_img(layers, path):
             if layer.name.lower() == 'background':
                 if not os.path.isfile(f'./lab1/{layer.name}.png'):
                     layer_img = PSDImage.open(path)
-                    image = layer_img.composite()
+                    visible_background(layer_img, True)
+                    image = layer_img.composite(ignore_preview=True)
                     image.save(f'./lab1/{layer.name}.png')
                     print(f'save successfully file: {layer.name}')
                 list_layers.append({
                     "name": layer.name,
                     "url": f"./lab1/{layer.name}.png"
                 })
+                continue
+            if 'Text -' in layer.name.lower():
+                with open(f'./output_json/property_frame_and_text_{layer.name}.json', 'w') as f:
+                    f.write(find_location_frame.find_location_and_text(layer))
+                    f.close()
                 continue
             layer.visible = True
             obj = {
@@ -131,15 +140,15 @@ def render_img(layers, path):
 
 
 def start():
-    psd = PSDImage.open('/home/anhmeo/Desktop/Once upon a time there was a girl who loves dogs. The end..psd')
+    psd = PSDImage.open('/home/anhmeo/Desktop/1000x1000 (1).psd')
     set_visible_all(psd, False)
     set_visible(psd, False)
 
     content = {
-        "Root": render_img(psd, '/home/anhmeo/Desktop/Once upon a time there was a girl who loves dogs. The end..psd')
+        "Root": render_img(psd, '/home/anhmeo/Desktop/1000x1000 (1).psd')
     }
 
-    with open('./output.json', 'w') as f:
+    with open('./output_json/data_image.json', 'w') as f:
         f.write(json.dumps(content))
         f.close()
 

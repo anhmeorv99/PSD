@@ -59,4 +59,4 @@ def find_location_and_text(root):
     return json.dumps(obj)
 
 
-print(find_location_and_text(psd))
+print(find_location_and_text(psd[3]))
