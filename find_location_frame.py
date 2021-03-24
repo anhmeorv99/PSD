@@ -48,15 +48,12 @@ def find_location_and_text(root):
 
     obj = [
         {
-            "type": "frame",
-            "data": list_frame
+            "frame": list_frame
         },
         {
-            "type": "text",
-            "data": list_text
+            "text": list_text
         }
     ]
     return json.dumps(obj)
 
 
-print(find_location_and_text(psd[3]))
