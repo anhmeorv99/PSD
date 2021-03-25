@@ -1,4 +1,7 @@
+#!/usr/bin/python
 from PIL import Image
+
+import sys
 
 import find_location_frame
 from psd_tools import PSDImage
@@ -43,15 +46,18 @@ def set_visible_have_background(group, mode):
     for layer in group:
         if layer.kind == 'group' and layer.name.lower() != 'background':
             layer.visible = mode
+            set_visible_have_background(layer, mode)
         else:
-            layer.visible = True
+            if layer.kind == 'group' and layer.name.lower() == 'background':
+                layer.visible = True
+                continue
+            layer.visible = False
 
 
 def save_output_file(image, img_text, name):
     img1 = Image.open(image)
     img2 = Image.open(img_text)
     Image.alpha_composite(img1, img2).save(f"{name}.png")
-
 
 
 def set_visible_all(root, mode):
@@ -91,11 +97,32 @@ def photo_stack_with_option(root, option=None, set_text=None, color=None, ttf=No
                 save_output_file(f"{option}.png", f'{layer.name}.png', option)
 
 
-psd = PSDImage.open('/home/anhmeo/Desktop/1000x1000 (1).psd')
-photo_stack_with_option(psd, option='Beagle', set_text='Hello world!', ttf='./font/OpenSans-ExtraBold.ttf', color='#FF0000')
+path, set_text, ttf, color, option = (None, None, None, None, None)
 
-#
-# psd = PSDImage.open('/home/anhmeo/Desktop/1000x1000 (1).psd')
-# for layer in reversed(list(psd.descendants())):
-#     if layer.name == 'Beagle':
-#         # print(layer.parent)
+if len(sys.argv) < 6:
+    print('Wrong params')
+    sys.exit()
+
+for i in range(len(sys.argv)):
+    if sys.argv[i] == '--psd':
+        path = sys.argv[i + 1]
+
+    if sys.argv[i] == '--text':
+        set_text = sys.argv[i + 1]
+
+    if sys.argv[i] == '--font':
+        ttf = sys.argv[i + 1]
+
+    if sys.argv[i] == '--option':
+        option = sys.argv[i + 1]
+
+    if sys.argv[i] == '--color':
+        color = sys.argv[i + 1]
+
+if not path or not option or not set_text:
+    print('wrong params')
+    sys.exit()
+
+psd = PSDImage.open(path)
+photo_stack_with_option(psd, option=option, set_text=set_text, ttf=ttf,
+                        color=color)
