@@ -6,7 +6,6 @@ import find_location_frame
 from psd_tools import PSDImage
 
 list_image_object = []
-list_image_object_thumbnail = []
 
 
 def send_with_thread_executor(max_workers):
@@ -16,17 +15,6 @@ def send_with_thread_executor(max_workers):
             futures.append(
                 executor.submit(
                     write_file_png, image[0], image[1], image[2], image[3]
-                )
-            )
-
-
-def send_with_thread_executor_thumbnail(max_workers):
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = []
-        for image in list_image_object:
-            futures.append(
-                executor.submit(
-                    write_file_thumbnail_png, image[0], image[1]
                 )
             )
 
@@ -211,10 +199,7 @@ def render_img_thumbnail(layers, path):
                 'url': f'{current_path}/{layer.name}.png'
             })
 
-            list_image_object_thumbnail.append([layer, current_path])
-            if len(list_image_object) > 10:
-                send_with_thread_executor_thumbnail(5)
-                list_image_object_thumbnail.clear()
+            write_file_thumbnail_png(layer, current_path)
 
     return list_layers
 
@@ -224,19 +209,15 @@ def start(path):
     set_visible_all(psd, False)
     set_visible(psd, False)
 
-    content = {
-        "Root": render_img(psd, path),
-    }
+    content = render_img(psd, path)
 
     psd = PSDImage.open(path)
 
-    content_thumbnail = {
-        "thumbnail": render_img_thumbnail(psd, path)
-    }
+    content_thumbnail = render_img_thumbnail(psd, path)
 
     content_output = {
-        'Root': content['Root'],
-        'thumbnail': content_thumbnail['thumbnail']
+        "Root": content,
+        'thumbnail': content_thumbnail
     }
 
     with open('./output.json', 'w') as f:
