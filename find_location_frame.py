@@ -1,10 +1,5 @@
 import re
 
-from psd_tools import PSDImage
-import json
-
-psd = PSDImage.open('/home/anhmeo/Desktop/1000x1000 (1).psd')
-
 
 def find_location_and_text(root):
     list_frame = []
@@ -55,5 +50,3 @@ def find_location_and_text(root):
         }
     ]
     return obj
-
-

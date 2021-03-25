@@ -7,6 +7,9 @@ def write_text_file_png(save_to, size, font_size, ttf, text, location, color):
     if not save_to or '.png' not in save_to:
         print('cant find format of image')
         return
+    if not text:
+        print('text must not Blank')
+        return
     fnt = None
     img = Image.new('RGBA', size, (255, 0, 0, 0))
     if ttf:
@@ -16,7 +19,7 @@ def write_text_file_png(save_to, size, font_size, ttf, text, location, color):
 
     img.save(f'{save_to}')
     print(f'save success {save_to}')
+    return img
 
-
-write_text_file_png('test_text.png', (1000, 1000), 15, './font/OpenSans-Bold.ttf', "Xin Chao", (723, 140),
-                    (255, 255, 0))
+# write_text_file_png('test_text.png', (1000, 1000), 15, './font/OpenSans-Bold.ttf', "Xin Chao", (723, 140),
+#                     (255, 255, 0))
