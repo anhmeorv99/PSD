@@ -11,8 +11,8 @@ def find_location_and_text(root):
                 {
                     'name': layer.name,
                     'position': {
-                        "X": layer.offset[0],
-                        "Y": layer.offset[1]
+                        'X': layer.offset[0],
+                        'Y': layer.offset[1]
                     },
                     'size': {
                         'width': layer.size[0],
@@ -28,7 +28,8 @@ def find_location_and_text(root):
             font_size = re.findall(r"'FontSize': (\d+.\d+),", data_ft)
             if len(text) > 0:
                 len_text = len(text[0].replace('\\r', ''))
-
+            if len(font_size) == 0:
+                font_size = re.findall(r"'FontSize': (\d+),", data_ft)
             if len(font_size) > 0:
                 font_size = font_size[0]
                 list_text.append(
@@ -43,10 +44,10 @@ def find_location_and_text(root):
 
     obj = [
         {
-            "frame": list_frame
+            'frame': list_frame
         },
         {
-            "text": list_text
+            'text': list_text
         }
     ]
     return obj
