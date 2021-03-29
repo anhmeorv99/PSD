@@ -90,39 +90,44 @@ def set_visible_all(root, mode):
             layer.visible = mode
 
 
-def photo_stack_with_option(root, option_f=None, set_text_f=None, color_f=None, ttf_f=None):
-    if not option_f or not set_text_f or not root:
-        print('wrong params root, option, text')
-        return
-    # index_of_option = re.findall(r"\d+", list(option_f.keys())[0])
-    # if len(index_of_option) > 0:
-    #     index_of_option = index_of_option[0]
-    # else:
-    #     print('cant find index of option')
-    #     return
-
-    set_visible_have_background(root, False)
-    check_option = find_option(root, option_f)
-    if check_option:
+def render_background(root, set_text_f, ttf_f, color_f):
+    for index in range(len(set_text_f)):
+        index_of_text_frame = re.findall(r"\d+", list(set_text_f[index].keys())[0])
+        if len(index_of_text_frame) > 0:
+            index_of_text_frame = index_of_text_frame[0]
+        else:
+            index_of_text_frame = ''
         for layer in root:
             if layer.name.lower() == 'background':
                 continue
-            if layer.kind == 'group' and f"text -" in layer.name.lower():
+            if layer.kind == 'group' and f"text - {index_of_text_frame}" in layer.name.lower():
                 frame_text = find_location_frame.find_location_and_text(layer)
                 frame = frame_text[0]
                 text = frame_text[1]
                 location = (frame['frame'][0]['position']['X'], frame['frame'][0]['position']['Y'])
                 font_size = text['text'][0]['data']['font_size']
 
-                render_text_img.write_text_file_png(f'{layer.name}.png', root.size, int(font_size), ttf_f, set_text_f,
-                                                    location, color_f)
-                image = root.composite(ignore_preview=True)
-                image.save(f'{check_option}.png')
-                save_output_file(f"{check_option}.png", f'{layer.name}.png',
-                                 f"{check_option}")
+                render_text_img.write_text_file_png(f'background{index}.png', root.size, int(font_size),
+                                                    ttf_f[index], list(set_text_f[index].values())[0], location, color_f[index])
+                save_output_file('background0.png', f'background{index}.png', 'background0')
 
 
-path, set_text, ttf, color, option = [None, [], None, None, []]
+def photo_stack_with_option(root, option_f=None, set_text_f=None, color_f=None, ttf_f=None):
+    if not option_f or not set_text_f or not root:
+        print('wrong params root, option, text')
+        return
+
+    set_visible_have_background(root, False)
+    check_option = find_option(root, option_f)
+    if check_option:
+        render_background(root, set_text_f, ttf_f, color_f)
+        image = root.composite(ignore_preview=True)
+        image.save(f'{check_option}.png')
+        save_output_file(f"{check_option}.png", 'background0.png',
+                         f"{check_option}")
+
+
+path, set_text, ttf, color, option = [None, [], [], [], []]
 
 if len(sys.argv) < 6:
     print('Wrong params')
@@ -133,20 +138,24 @@ for i in range(len(sys.argv)):
         path = sys.argv[i + 1]
 
     if '--text' in sys.argv[i]:
-        set_text.append(
+        set_text.append({
+            f"{sys.argv[i]}": sys.argv[i+1]
+        })
+
+    if '--font' in sys.argv[i]:
+        ttf.append(
             sys.argv[i + 1]
         )
-
-    if sys.argv[i] == '--font':
-        ttf = sys.argv[i + 1]
 
     if '--option' in sys.argv[i]:
         option.append({
             f"{sys.argv[i]}": sys.argv[i + 1]
         })
 
-    if sys.argv[i] == '--color':
-        color = sys.argv[i + 1]
+    if '--color' in sys.argv[i]:
+        color.append(
+            sys.argv[i + 1]
+        )
 
 if not path or not option or not set_text:
     print('wrong params')
@@ -157,4 +166,4 @@ if len(option) != count_options(psd):
     print(f'invalid option or too many options. options : {len(option)}, options_psd : {count_options(psd)}')
     sys.exit()
 
-photo_stack_with_option(psd, option_f=option, set_text_f=set_text[0], ttf_f=ttf, color_f=color)
+photo_stack_with_option(psd, option_f=option, set_text_f=set_text, ttf_f=ttf, color_f=color)
