@@ -16,27 +16,36 @@ def save_output_file(image, img_text, name):
 
 
 def render_background(psd_path, json_path, option_f, set_text_f, ttf_f, color_f, font_size=30):
-    json_file = open(json_path)
-    json_obj = json.load(json_file)
     check_size_img = Image.open(f"{psd_path}/{list(option_f[0].values())[0]}.png")
     size = check_size_img.size
 
-    for index, obj in enumerate(json_obj[0]['frame']):
-        location = (obj['position']['X'], obj['position']['Y'])
+    if set_text_f:
+        json_file = open(json_path)
+        json_obj = json.load(json_file)
+        json_file.close()
+        if len(json_obj) != len(set_text_f):
+            print('length of text != length of frame')
+            sys.exit()
 
-        render_text_img.write_text_file_png(f'background{index}.png', size, font_size,
-                                            ttf_f[index], list(set_text_f[index].values())[0], location,
-                                            color_f[index])
-        save_output_file('background0.png', f'background{index}.png', 'background0')
+        for index, obj in enumerate(json_obj[0]['frame']):
+            location = (obj['position']['X'], obj['position']['Y'])
+
+            render_text_img.write_text_file_png(f'background{index}.png', size, font_size,
+                                                ttf_f[index], list(set_text_f[index].values())[0], location,
+                                                color_f[index])
+            save_output_file('background0.png', f'background{index}.png', 'background0')
+    else:
+        render_text_img.write_text_file_png(f'background0.png', size, font_size, None, None, None, None)
 
 
-def photo_stack_with_option(psd_path, json_path, option_f=None, set_text_f=None, color_f=None, ttf_f=None, font_size=None):
-    if not option_f or not set_text_f or not json_path:
-        print('wrong params root, option, text')
+def photo_stack_with_option(psd_path, json_path, option_f=None, set_text_f=None, color_f=None, ttf_f=None,
+                            font_size=None):
+    if not option_f:
+        print('wrong params option')
         return
     name = ''
     if font_size:
-        render_background(psd_path, json_path, option_f,  set_text_f, ttf_f, color_f, font_size=font_size)
+        render_background(psd_path, json_path, option_f, set_text_f, ttf_f, color_f, font_size=font_size)
     else:
         render_background(psd_path, json_path, option_f, set_text_f, ttf_f, color_f)
 
@@ -84,11 +93,21 @@ for i in range(len(sys.argv)):
     if '--json' in sys.argv[i]:
         js = sys.argv[i + 1]
 
-if not path or not option or not set_text:
-    print('wrong params')
+if not path or not option:
+    print('wrong params path or options')
     sys.exit()
-if len(set_text) != len(color) or len(color) != len(ttf):
+if len(color) != len(ttf):
     print('need to fill complete in params. Ex : --text1 --text2 --font1 --font2 --color1 --color2')
     sys.exit()
+if len(set_text) == 0:
+    if len(ttf) > 0 or len(color) > 0 or js:
+        print('No text at all')
+        sys.exit()
+    set_text = None
+
+else:
+    if not js:
+        print('Invalid file json')
+        sys.exit()
 
 photo_stack_with_option(path, js, option_f=option, set_text_f=set_text, ttf_f=ttf, color_f=color, font_size=25)
