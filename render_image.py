@@ -125,7 +125,6 @@ def render_img(layers, path):
             }
             list_layers.append(obj)
         else:
-
             tmp = layer
             branch = []
             current_path = './lab1'
@@ -144,7 +143,7 @@ def render_img(layers, path):
             })
 
             list_image_object.append([layer.name, path, branch, current_path])
-            if len(list_image_object) > 10:
+            if len(list_image_object) > 0:
                 send_with_thread_executor(5)
                 list_image_object.clear()
 
@@ -226,4 +225,4 @@ def start(path):
 
 
 if __name__ == '__main__':
-    start('/home/anhmeo/Desktop/Once upon a time there was a girl who loves dogs. The end..psd')
+    start('/home/anhmeo/Desktop/two people.psd')
