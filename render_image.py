@@ -5,6 +5,8 @@ from concurrent.futures import ThreadPoolExecutor
 import find_location_frame
 from psd_tools import PSDImage
 
+from log.log_manage import reset_log, get_log, add_log
+
 list_image_object = []
 
 
@@ -17,6 +19,16 @@ def send_with_thread_executor(max_workers):
                     write_file_png, image[0], image[1], image[2], image[3]
                 )
             )
+
+
+def count_images(layers):
+    for layer in layers:
+        if layer.kind == 'group':
+            if layer.name.lower() == 'background' or 'text -' in layer.name.lower():
+                continue
+            count_images(layer)
+        else:
+            add_log('total', 1)
 
 
 def gen_path(current_path, branch):
@@ -83,7 +95,9 @@ def write_file_png(name, path, branch, current_path):
         visible_branch(layer_img, branch)
         image = layer_img.composite(ignore_preview=True)
         image.save(f'{current_path}/{name}.png')
+        add_log('image', 1)
         print(f'save successfully file: {name}')
+        get_log()
 
 
 def write_file_thumbnail_png(layer, current_path):
@@ -92,6 +106,8 @@ def write_file_thumbnail_png(layer, current_path):
         image = layer.composite()
         image.save(f'{current_path}/{layer.name}.png')
         print(f'save successfully file: {layer.name}')
+        add_log('image', 1)
+        get_log()
         layer.visible = False
 
 
@@ -145,7 +161,6 @@ def render_img(layers, path):
             list_image_object.append([layer.name, path, branch, current_path])
             if len(list_image_object) > 0:
                 send_with_thread_executor(5)
-                list_image_object.clear()
 
     return list_layers
 
@@ -205,15 +220,18 @@ def render_img_thumbnail(layers, path):
 
 def start(path):
     psd = PSDImage.open(path)
+
     set_visible_all(psd, False)
     set_visible(psd, False)
-
+    print('Start render image :')
+    count_images(psd)
     content = render_img(psd, path)
-
     psd = PSDImage.open(path)
 
+    print('Start render image thumbnail :')
+    reset_log()
+    count_images(psd)
     content_thumbnail = render_img_thumbnail(psd, path)
-
     content_output = {
         "Root": content,
         'thumbnail': content_thumbnail
@@ -225,4 +243,5 @@ def start(path):
 
 
 if __name__ == '__main__':
+    reset_log()
     start('/home/anhmeo/Desktop/two people.psd')
