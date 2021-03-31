@@ -31,12 +31,13 @@ def count_images(layers):
             add_log('total', 1)
 
 
-def gen_path(current_path, branch):
+def gen_path(current_path, branch, reverse=True):
     if len(branch) == 1:
         return current_path
     if len(branch) > 1:
+        if reverse:
+            branch.reverse()
 
-        branch.reverse()
         for index in range(0, len(branch) - 1, 1):
             if os.path.exists(f'{current_path}/{branch[index]}'):
                 current_path += f'/{branch[index]}'
@@ -124,7 +125,18 @@ def render_img(layers, path):
                     print(f'save successfully file: {layer.name}')
                 list_layers.append({
                     'name': layer.name,
-                    'url': f'./lab1/{layer.name}.png'
+
+                })
+                if not os.path.isfile(f'./lab1/thumbnail/{layer.name}.png'):
+                    layer.visible = True
+                    image = layer.composite()
+                    image.save(f'./lab1/thumbnail/{layer.name}.png')
+                    layer.visible = False
+                    print(f'save successfully file: {layer.name}')
+                list_layers.append({
+                    'name': layer.name,
+                    'url': f'./lab1/{layer.name}.png',
+                    'thumbnail': f'./lab1/thumbnail/{layer.name}.png'
                 })
                 continue
             if 'text -' in layer.name.lower():
@@ -144,76 +156,32 @@ def render_img(layers, path):
             tmp = layer
             branch = []
             current_path = './lab1'
+            thumbnail_current_path = './lab1/thumbnail'
             while tmp.parent is not None:
                 branch.append(tmp.name)
                 tmp = tmp.parent
             current_path = gen_path(current_path, branch)
 
+            while tmp.parent is not None:
+                branch.append(tmp.name)
+                tmp = tmp.parent
+
+            thumbnail_current_path = gen_path(thumbnail_current_path, branch, reverse=False)
             if layer.name.lower() == 'background' and layer.parent.parent:
                 write_file_png(layer.name, path, branch, current_path)
+                write_file_thumbnail_png(layer, thumbnail_current_path)
                 continue
 
             list_layers.append({
                 'name': f'{layer.name}',
-                'url': f'{current_path}/{layer.name}.png'
+                'url': f'{current_path}/{layer.name}.png',
+                'thumbnail': f'{thumbnail_current_path}/{layer.name}.png'
             })
+            write_file_thumbnail_png(layer, thumbnail_current_path)
 
             list_image_object.append([layer.name, path, branch, current_path])
             if len(list_image_object) > 0:
                 send_with_thread_executor(5)
-
-    return list_layers
-
-
-def render_img_thumbnail(layers, path):
-    list_layers = []
-    for layer in layers:
-        if layer.kind == 'group':
-            if layer.name.lower() == 'background':
-                if not os.path.isfile(f'./lab1/thumbnail/{layer.name}.png'):
-                    layer.visible = True
-                    image = layer.composite()
-                    image.save(f'./lab1/thumbnail/{layer.name}.png')
-                    layer.visible = False
-                    print(f'save successfully file: {layer.name}')
-                list_layers.append({
-                    'name': layer.name,
-                    'url': f'./lab1/thumbnail/{layer.name}.png'
-                })
-                continue
-            if 'text -' in layer.name.lower():
-                list_layers.append({
-                    f'{layer.name}': find_location_frame.find_location_and_text(layer)
-                })
-                # with open(f'./output_json/property_frame_and_text_{layer.name}.json', 'w') as f:
-                #     f.write(find_location_frame.find_location_and_text(layer))
-                #     f.close()
-                continue
-            layer.visible = True
-            obj = {
-                f'{layer.name}': render_img_thumbnail(layer, path),
-            }
-            list_layers.append(obj)
-        else:
-
-            tmp = layer
-            branch = []
-            current_path = './lab1/thumbnail'
-            while tmp.parent is not None:
-                branch.append(tmp.name)
-                tmp = tmp.parent
-            current_path = gen_path(current_path, branch)
-
-            if layer.name.lower() == 'background' and layer.parent.parent:
-                write_file_thumbnail_png(layer, current_path)
-                continue
-
-            list_layers.append({
-                'name': f'{layer.name}',
-                'url': f'{current_path}/{layer.name}.png'
-            })
-
-            write_file_thumbnail_png(layer, current_path)
 
     return list_layers
 
@@ -225,18 +193,14 @@ def start(path):
     set_visible(psd, False)
     print('Start render image :')
     count_images(psd)
-    content = render_img(psd, path)
-    psd = PSDImage.open(path)
-
-    print('Start render image thumbnail :')
-    reset_log()
     count_images(psd)
-    content_thumbnail = render_img_thumbnail(psd, path)
+    content = render_img(psd, path)
+
     content_output = {
-        "Root": content,
-        'thumbnail': content_thumbnail
+        "Root": content
     }
 
+    print('DONE')
     with open('./output.json', 'w') as f:
         f.write(json.dumps(content_output))
         f.close()
