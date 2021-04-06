@@ -186,26 +186,26 @@ def render_img(layers, path):
     return list_layers
 
 
-def start(path):
-    psd = PSDImage.open(path)
+# def start(path):
+#     psd = PSDImage.open(path)
+#
+#     set_visible_all(psd, False)
+#     set_visible(psd, False)
+#     print('Start render image :')
+#     count_images(psd)
+#     count_images(psd)
+#     content = render_img(psd, path)
+#
+#     content_output = {
+#         "Root": content
+#     }
+#
+#     print('DONE')
+#     with open('./output.json', 'w') as f:
+#         f.write(json.dumps(content_output))
+#         f.close()
 
-    set_visible_all(psd, False)
-    set_visible(psd, False)
-    print('Start render image :')
-    count_images(psd)
-    count_images(psd)
-    content = render_img(psd, path)
 
-    content_output = {
-        "Root": content
-    }
-
-    print('DONE')
-    with open('./output.json', 'w') as f:
-        f.write(json.dumps(content_output))
-        f.close()
-
-
-if __name__ == '__main__':
-    reset_log()
-    start('/home/anhmeo/Desktop/two people.psd')
+# if __name__ == '__main__':
+#     reset_log()
+#     start('/home/anhmeo/Desktop/two people.psd')

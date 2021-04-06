@@ -222,6 +222,6 @@ class RenderImage(object):
 
 
 print('start server tcp://0.0.0.0:4242')
-s = zerorpc.Server(RenderImage())
+s = zerorpc.Server(RenderImage(), heartbeat=100000)
 s.bind("tcp://0.0.0.0:4242")
 s.run()

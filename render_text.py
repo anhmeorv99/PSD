@@ -4,11 +4,26 @@ from psd_tools import PSDImage
 
 
 def find_text(root, text):
+    list_frame = []
     list_text = []
-
     for layer in reversed(list(root.descendants())):
         if layer.name == text:
             for child in reversed(list(layer.descendants())):
+                if child.kind == 'shape':
+                    list_frame.append(
+                        {
+                            'name': child.name,
+                            'position': {
+                                'X': child.offset[0],
+                                'Y': child.offset[1]
+                            },
+                            'size': {
+                                'width': child.size[0],
+                                'height': child.size[1]
+                            }
+
+                        }
+                    )
                 if child.kind == 'type':
                     data_ft = str(child.engine_dict)
                     font_name = re.findall(r"'FontSet': \[{'Name': '(.*)'", str(child.resource_dict))[0]
@@ -33,7 +48,16 @@ def find_text(root, text):
                             }
                         )
             break
-    return list_text
+
+    obj = [
+        {
+            'frame': list_frame
+        },
+        {
+            'text': list_text
+        }
+    ]
+    return obj
 
 
 psd = PSDImage.open('/home/anhmeo/Desktop/dog1 (1).psd')

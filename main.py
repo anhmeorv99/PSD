@@ -1,13 +1,15 @@
 import json
 import os
 import itertools
-import cv2
 from psd_tools import PSDImage
-
-psd = PSDImage.open('/home/anhmeo/Desktop/Once upon a time there was a girl who loves dogs. The end..psd')
 
 list_layer_parent = []
 found_2_dog = 0
+
+
+class _Const:
+    def __init__(self, file_psd):
+        self.psd = file_psd
 
 
 def find_parent(layer):
@@ -30,7 +32,7 @@ def find_parent(layer):
 def set_visible(group, mode, root):
     name = ""
     for layer in group:
-        if layer.name.lower() != 'background':
+        if layer.name.lower() != 'background' and layer.kind == 'group':
             layer.visible = mode
             name += '_' + layer.name
         else:
@@ -67,13 +69,13 @@ def export_img(list_groups, grant):
     for index, combination in enumerate(list_img):
         if not check_duplicate_parent(combination):
             name = set_visible(combination, True, grant)
-            if not os.path.isfile(f'./lab/{name}.png'):
+            if not os.path.isfile(f'./lab1/{name}.png'):
                 image = grant.composite(ignore_preview=True)
-                image.save(f'./lab/{name}.png')
+                image.save(f'./lab1/{name}.png')
             set_visible(combination, False, grant)
             yield {
                 "name": name,
-                "url": f'./lab/{name}.png'
+                "url": f'./lab1/{name}.png'
             }
 
 
@@ -114,13 +116,13 @@ def get_object(root, layers, background):
                 else:
                     result.append({
                         "name": f"{layer.name}",
-                        "url": f"./lab/{layer.name}.png"
+                        "url": f"./lab1/{layer.name}.png"
                     })
 
                     layer.visible = True
-                    if not os.path.isfile(f'./lab/{layer.name}.png'):
+                    if not os.path.isfile(f'./lab1/{layer.name}.png'):
                         image = root.composite(ignore_preview=True)
-                        image.save(f'./lab/{layer.name}.png')
+                        image.save(f'./lab1/{layer.name}.png')
                     continue
             list_layer_parent.append(list_parent)
             list_combination = []
@@ -129,7 +131,7 @@ def get_object(root, layers, background):
                     list_combination.append(item)
                 result.append({
                     "name": f"{layer.name}",
-                    "url": f"./lab/{layer.name}.png",
+                    "url": f"./lab1/{layer.name}.png",
                     "combination": list_combination
                 })
 
@@ -148,15 +150,15 @@ def get_object(root, layers, background):
                     name = item.name
                     result.append({
                         "name": f"{layer.name}",
-                        "url": f"./lab/{layer.name}.png"
+                        "url": f"./lab1/{layer.name}.png"
                     })
-                    if not os.path.isfile(f'./lab/{name}.png'):
+                    if not os.path.isfile(f'./lab1/{name}.png'):
                         image = root.composite(ignore_preview=True)
-                        image.save(f'./lab/{name}.png')
+                        image.save(f'./lab1/{name}.png')
                     item.visible = False
                 set_visible(layer_parent.parent, False, root)
 
 
-set_visible(psd, False, psd)
+psd = _Const(PSDImage.open('/home/anhmeo/Desktop/Once upon a time there was a girl who loves dogs. The end..psd'))
 
-get_object(psd, psd, 'background')
+get_object(psd.psd, psd.psd, 'background')
