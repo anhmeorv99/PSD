@@ -7,6 +7,8 @@ from concurrent.futures import ThreadPoolExecutor
 import find_location_frame
 from psd_tools import PSDImage
 
+from PIL import Image
+
 from log.log_manage import reset_log, get_log, add_log
 
 list_image_object = []
@@ -111,11 +113,66 @@ def write_file_thumbnail_png(layer, current_path):
     if not os.path.isfile(f'{current_path}/{layer.name}.png'):
         layer.visible = True
         image = layer.composite()
+        image = crop(image)
         image.save(f'{current_path}/{layer.name}.png')
         print(f'save successfully file: {layer.name}')
         add_log('image', 1)
         get_log()
         layer.visible = False
+
+# https://gist.github.com/odyniec/3470977
+
+
+def crop(pil_image, border=0):
+    # Get the bounding box
+    bbox = pil_image.getbbox()
+
+    # Crop the image to the contents of the bounding box
+    pil_image = pil_image.crop(bbox)
+
+    # Determine the width and height of the cropped image
+    (width, height) = pil_image.size
+
+    # Add border
+    width += border * 2
+    height += border * 2
+
+    # Create a new image object for the output image
+    cropped_image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+
+    # Paste the cropped image onto the new image
+    cropped_image.paste(pil_image, (border, border))
+    cropped_image = paste_to_square(cropped_image)
+
+    # Done!
+    return cropped_image
+
+
+def paste_to_square(pil_image, background_color=(255, 0, 0, 0)):
+    thumnail_width = thumnail_height = 400
+    width, height = pil_image.size
+    if width == height:
+        pil_image = pil_image.resize((thumnail_width, thumnail_height))
+        return pil_image
+    elif width > height:
+        new_height = int((height / width) * thumnail_width)
+        pil_image = pil_image.resize((thumnail_width, new_height))
+        # print(pil_image.size)
+        result = Image.new(
+            pil_image.mode, (thumnail_width, thumnail_width), background_color
+        )
+        result.paste(
+            pil_image, (0, (thumnail_height // 2) - (new_height // 2)))
+        return result
+    else:
+        new_width = int((width / height) * thumnail_height)
+        pil_image = pil_image.resize((new_width, thumnail_height))
+        # print(pil_image.size)
+        result = Image.new(
+            pil_image.mode, (thumnail_width, thumnail_width), background_color
+        )
+        result.paste(pil_image, ((thumnail_width // 2) - (new_width // 2), 0))
+        return result
 
 
 def render_img(layers, path):
