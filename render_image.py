@@ -1,6 +1,8 @@
+from dotenv import dotenv_values
 import concurrent
 import json
 import os
+import shutil
 from concurrent.futures import ThreadPoolExecutor
 import find_location_frame
 from psd_tools import PSDImage
@@ -8,6 +10,10 @@ from psd_tools import PSDImage
 from log.log_manage import reset_log, get_log, add_log
 
 list_image_object = []
+
+print(dotenv_values())
+OUTPUT_DIR = dotenv_values()['OUTPUT_DIR']
+INPUT_FILE = dotenv_values()['INPUT_FILE']
 
 
 def send_with_thread_executor(max_workers):
@@ -117,26 +123,26 @@ def render_img(layers, path):
     for layer in layers:
         if layer.kind == 'group':
             if layer.name.lower() == 'background':
-                if not os.path.isfile(f'./lab1/{layer.name}.png'):
+                if not os.path.isfile(f'{OUTPUT_DIR}/{layer.name}.png'):
                     layer_img = PSDImage.open(path)
                     visible_background(layer_img, True)
                     image = layer_img.composite(ignore_preview=True)
-                    image.save(f'./lab1/{layer.name}.png')
+                    image.save(f'{OUTPUT_DIR}/{layer.name}.png')
                     print(f'save successfully file: {layer.name}')
                 list_layers.append({
                     'name': layer.name,
 
                 })
-                if not os.path.isfile(f'./lab1/thumbnail/{layer.name}.png'):
+                if not os.path.isfile(f'{OUTPUT_DIR}/thumbnail/{layer.name}.png'):
                     layer.visible = True
                     image = layer.composite()
-                    image.save(f'./lab1/thumbnail/{layer.name}.png')
+                    image.save(f'{OUTPUT_DIR}/thumbnail/{layer.name}.png')
                     layer.visible = False
                     print(f'save successfully file: {layer.name}')
                 list_layers.append({
                     'name': layer.name,
-                    'url': f'./lab1/{layer.name}.png',
-                    'thumbnail': f'./lab1/thumbnail/{layer.name}.png'
+                    'url': f'{OUTPUT_DIR}/{layer.name}.png',
+                    'thumbnail': f'{OUTPUT_DIR}/thumbnail/{layer.name}.png'
                 })
                 continue
             if 'text -' in layer.name.lower():
@@ -155,8 +161,8 @@ def render_img(layers, path):
         else:
             tmp = layer
             branch = []
-            current_path = './lab1'
-            thumbnail_current_path = './lab1/thumbnail'
+            current_path = OUTPUT_DIR
+            thumbnail_current_path = f'{OUTPUT_DIR}/thumbnail'
             while tmp.parent is not None:
                 branch.append(tmp.name)
                 tmp = tmp.parent
@@ -166,7 +172,8 @@ def render_img(layers, path):
                 branch.append(tmp.name)
                 tmp = tmp.parent
 
-            thumbnail_current_path = gen_path(thumbnail_current_path, branch, reverse=False)
+            thumbnail_current_path = gen_path(
+                thumbnail_current_path, branch, reverse=False)
             if layer.name.lower() == 'background' and layer.parent.parent:
                 write_file_png(layer.name, path, branch, current_path)
                 write_file_thumbnail_png(layer, thumbnail_current_path)
@@ -187,6 +194,16 @@ def render_img(layers, path):
 
 
 def start(path):
+    reset_log()
+    global OUTPUT_DIR
+    OUTPUT_DIR = "./OUTPUT" + "/" + os.path.basename(path)
+    if os.path.isdir(OUTPUT_DIR):
+        shutil.rmtree(OUTPUT_DIR)
+    if not os.path.exists(OUTPUT_DIR):
+        os.makedirs(OUTPUT_DIR)
+
+    if not os.path.exists(f"{OUTPUT_DIR}/thumbnail"):
+        os.makedirs(f"{OUTPUT_DIR}/thumbnail")
     psd = PSDImage.open(path)
 
     set_visible_all(psd, False)
@@ -207,5 +224,4 @@ def start(path):
 
 
 if __name__ == '__main__':
-    reset_log()
-    start('/home/anhmeo/Desktop/two people.psd')
+    start(INPUT_FILE)
