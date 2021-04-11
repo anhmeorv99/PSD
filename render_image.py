@@ -1,13 +1,21 @@
+from dotenv import dotenv_values
 import concurrent
 import json
 import os
+import shutil
 from concurrent.futures import ThreadPoolExecutor
 import find_location_frame
 from psd_tools import PSDImage
 
+from PIL import Image
+
 from log.log_manage import reset_log, get_log, add_log
 
 list_image_object = []
+
+print(dotenv_values())
+OUTPUT_DIR = dotenv_values()['OUTPUT_DIR']
+INPUT_FILE = dotenv_values()['INPUT_FILE']
 
 
 def send_with_thread_executor(max_workers):
@@ -105,11 +113,66 @@ def write_file_thumbnail_png(layer, current_path):
     if not os.path.isfile(f'{current_path}/{layer.name}.png'):
         layer.visible = True
         image = layer.composite()
+        image = crop(image)
         image.save(f'{current_path}/{layer.name}.png')
         print(f'save successfully file: {layer.name}')
         add_log('image', 1)
         get_log()
         layer.visible = False
+
+# https://gist.github.com/odyniec/3470977
+
+
+def crop(pil_image, border=0):
+    # Get the bounding box
+    bbox = pil_image.getbbox()
+
+    # Crop the image to the contents of the bounding box
+    pil_image = pil_image.crop(bbox)
+
+    # Determine the width and height of the cropped image
+    (width, height) = pil_image.size
+
+    # Add border
+    width += border * 2
+    height += border * 2
+
+    # Create a new image object for the output image
+    cropped_image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+
+    # Paste the cropped image onto the new image
+    cropped_image.paste(pil_image, (border, border))
+    cropped_image = paste_to_square(cropped_image)
+
+    # Done!
+    return cropped_image
+
+
+def paste_to_square(pil_image, background_color=(255, 0, 0, 0)):
+    thumnail_width = thumnail_height = 400
+    width, height = pil_image.size
+    if width == height:
+        pil_image = pil_image.resize((thumnail_width, thumnail_height))
+        return pil_image
+    elif width > height:
+        new_height = int((height / width) * thumnail_width)
+        pil_image = pil_image.resize((thumnail_width, new_height))
+        # print(pil_image.size)
+        result = Image.new(
+            pil_image.mode, (thumnail_width, thumnail_width), background_color
+        )
+        result.paste(
+            pil_image, (0, (thumnail_height // 2) - (new_height // 2)))
+        return result
+    else:
+        new_width = int((width / height) * thumnail_height)
+        pil_image = pil_image.resize((new_width, thumnail_height))
+        # print(pil_image.size)
+        result = Image.new(
+            pil_image.mode, (thumnail_width, thumnail_width), background_color
+        )
+        result.paste(pil_image, ((thumnail_width // 2) - (new_width // 2), 0))
+        return result
 
 
 def render_img(layers, path):
@@ -117,26 +180,26 @@ def render_img(layers, path):
     for layer in layers:
         if layer.kind == 'group':
             if layer.name.lower() == 'background':
-                if not os.path.isfile(f'./lab1/{layer.name}.png'):
+                if not os.path.isfile(f'{OUTPUT_DIR}/{layer.name}.png'):
                     layer_img = PSDImage.open(path)
                     visible_background(layer_img, True)
                     image = layer_img.composite(ignore_preview=True)
-                    image.save(f'./lab1/{layer.name}.png')
+                    image.save(f'{OUTPUT_DIR}/{layer.name}.png')
                     print(f'save successfully file: {layer.name}')
                 list_layers.append({
                     'name': layer.name,
 
                 })
-                if not os.path.isfile(f'./lab1/thumbnail/{layer.name}.png'):
+                if not os.path.isfile(f'{OUTPUT_DIR}/thumbnail/{layer.name}.png'):
                     layer.visible = True
                     image = layer.composite()
-                    image.save(f'./lab1/thumbnail/{layer.name}.png')
+                    image.save(f'{OUTPUT_DIR}/thumbnail/{layer.name}.png')
                     layer.visible = False
                     print(f'save successfully file: {layer.name}')
                 list_layers.append({
                     'name': layer.name,
-                    'url': f'./lab1/{layer.name}.png',
-                    'thumbnail': f'./lab1/thumbnail/{layer.name}.png'
+                    'url': f'{OUTPUT_DIR}/{layer.name}.png',
+                    'thumbnail': f'{OUTPUT_DIR}/thumbnail/{layer.name}.png'
                 })
                 continue
             if 'text -' in layer.name.lower():
@@ -155,8 +218,8 @@ def render_img(layers, path):
         else:
             tmp = layer
             branch = []
-            current_path = './lab1'
-            thumbnail_current_path = './lab1/thumbnail'
+            current_path = OUTPUT_DIR
+            thumbnail_current_path = f'{OUTPUT_DIR}/thumbnail'
             while tmp.parent is not None:
                 branch.append(tmp.name)
                 tmp = tmp.parent
@@ -166,7 +229,8 @@ def render_img(layers, path):
                 branch.append(tmp.name)
                 tmp = tmp.parent
 
-            thumbnail_current_path = gen_path(thumbnail_current_path, branch, reverse=False)
+            thumbnail_current_path = gen_path(
+                thumbnail_current_path, branch, reverse=False)
             if layer.name.lower() == 'background' and layer.parent.parent:
                 write_file_png(layer.name, path, branch, current_path)
                 write_file_thumbnail_png(layer, thumbnail_current_path)
@@ -186,26 +250,35 @@ def render_img(layers, path):
     return list_layers
 
 
-# def start(path):
-#     psd = PSDImage.open(path)
-#
-#     set_visible_all(psd, False)
-#     set_visible(psd, False)
-#     print('Start render image :')
-#     count_images(psd)
-#     count_images(psd)
-#     content = render_img(psd, path)
-#
-#     content_output = {
-#         "Root": content
-#     }
-#
-#     print('DONE')
-#     with open('./output.json', 'w') as f:
-#         f.write(json.dumps(content_output))
-#         f.close()
+def start(path):
+    reset_log()
+    global OUTPUT_DIR
+    OUTPUT_DIR = "./OUTPUT" + "/" + os.path.basename(path)
+    if os.path.isdir(OUTPUT_DIR):
+        shutil.rmtree(OUTPUT_DIR)
+    if not os.path.exists(OUTPUT_DIR):
+        os.makedirs(OUTPUT_DIR)
+
+    if not os.path.exists(f"{OUTPUT_DIR}/thumbnail"):
+        os.makedirs(f"{OUTPUT_DIR}/thumbnail")
+    psd = PSDImage.open(path)
+
+    set_visible_all(psd, False)
+    set_visible(psd, False)
+    print('Start render image :')
+    count_images(psd)
+    count_images(psd)
+    content = render_img(psd, path)
+
+    content_output = {
+        "Root": content
+    }
+
+    print('DONE')
+    with open(f'{OUTPUT_DIR}/output.json', 'w') as f:
+        f.write(json.dumps(content_output))
+        f.close()
 
 
-# if __name__ == '__main__':
-#     reset_log()
-#     start('/home/anhmeo/Desktop/two people.psd')
+if __name__ == '__main__':
+    start(INPUT_FILE)
