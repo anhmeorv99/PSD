@@ -1,3 +1,4 @@
+import json
 import re
 
 from psd_tools import PSDImage
@@ -8,22 +9,8 @@ def find_location_and_text(root):
     list_text = []
     obj = []
     for layer in reversed(list(root.descendants())):
-        if layer.kind == 'shape':
-            list_frame.append(
-                {
-                    'name': layer.name,
-                    'position': {
-                        'X': layer.offset[0],
-                        'Y': layer.offset[1]
-                    },
-                    'size': {
-                        'width': layer.size[0],
-                        'height': layer.size[1]
-                    }
-
-                }
-            )
         if layer.kind == 'type':
+
             data_ft = str(layer.engine_dict)
             font_name = re.findall(r"'FontSet': \[{'Name': '(.*)'", str(layer.resource_dict))[0]
             font_name = font_name.split(',')[0].replace('\'', '')
@@ -36,30 +23,30 @@ def find_location_and_text(root):
                 font_size = re.findall(r"'FontSize': (\d+),", data_ft)
             if len(font_size) > 0:
                 font_size = font_size[0]
-                list_text.append(
+                list_frame.append(
                     {
                         'name': layer.name,
+                        'position': {
+                            'X': layer.offset[0],
+                            'Y': layer.offset[1]
+                        },
+                        'size': {
+                            'width': layer.size[0],
+                            'height': layer.size[1]
+                        },
                         'data': {
                             'length_text': len_text,
                             'font_size': float(font_size),
                             'font_name': font_name
                         }
+
                     }
                 )
 
-    obj = [
-        {
-            'frame': list_frame
-        },
-        {
-            'text': list_text
-        }
-    ]
-    return obj
+    return list_frame
+
 
 #
 # psd = PSDImage.open('/home/anhmeo/Desktop/dog1 (1).psd')
 #
-#
-# print(find_location_and_text(psd))
-
+# print(json.dumps(find_location_and_text(psd)))
